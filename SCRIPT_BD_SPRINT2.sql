@@ -1,0 +1,117 @@
+CREATE DATABASE logi_dock;
+
+USE logi_dock;
+
+CREATE TABLE endereco (
+	id_endereco INT PRIMARY KEY AUTO_INCREMENT,
+    numero VARCHAR(10),
+    cidade VARCHAR(45),
+    estado CHAR(2),
+    logradouro VARCHAR(100)
+);
+
+CREATE TABLE empresa (
+	id_empresa INT PRIMARY KEY AUTO_INCREMENT,
+    razao_social VARCHAR(45),
+    cnpj CHAR(14),
+    dt_registro DATE,
+    fk_endereco INT,
+    CONSTRAINT ct_fk_endereco FOREIGN KEY (fk_endereco) REFERENCES endereco (id_endereco)
+);
+
+CREATE TABLE sensor (
+	id_sensor INT PRIMARY KEY AUTO_INCREMENT,
+    fk_empresa INT,
+    status_sensor TINYINT(1),
+	CONSTRAINT ct_fk_empresa FOREIGN KEY (fk_empresa) REFERENCES empresa (id_empresa)
+);
+
+CREATE TABLE historico_sensor (
+	id_historico_sensor INT PRIMARY KEY AUTO_INCREMENT,
+    fk_sensor INT,
+    dt_hora_entrada DATETIME,
+    dt_hora_saida DATETIME,
+    CONSTRAINT ct_fk_sensor FOREIGN KEY (fk_sensor) REFERENCES sensor (id_sensor)
+);
+
+CREATE TABLE usuario (
+	id_usuario INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(45),
+    email VARCHAR(45),
+    senha VARCHAR(20),
+    fk_empresa INT,
+    CONSTRAINT ct_fk_empresa FOREIGN KEY (fk_empresa) REFERENCES empresa (id_empresa)
+);
+
+CREATE TABLE nivel_acesso (
+	id_nivel_acesso INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(45),
+    fk_usuario INT,
+    CONSTRAINT ct_fk_usuario FOREIGN KEY (fk_usuario) REFERENCES usuario (id_usuario),
+    CONSTRAINT ct_ck_nome CHECK (nome IN ('ADMINISTRADOR', 'GESTOR', 'FUNCIONÁRIO'))
+);
+
+CREATE TABLE doca (
+	id_doca INT PRIMARY KEY AUTO_INCREMENT,
+    numero VARCHAR(10),
+    status_doca VARCHAR(15),
+    fk_empresa INT,
+    fk_sensor INT,
+    CONSTRAINT ct_ck_status_doca CHECK (status_doca IN ('LIVRE', 'OCUPADA', 'MANUTENÇÃO')),
+    CONSTRAINT ct_fk_empresa FOREIGN KEY (fk_empresa) REFERENCES empresa (id_empresa),
+    CONSTRAINT ct_fk_sensor FOREIGN KEY (fk_sensor) REFERENCES sensor (id_sensor)
+);
+
+INSERT INTO endereco (numero, cidade, estado, logradouro) VALUES
+('100', 'São Paulo', 'SP', 'Av. Paulista'),
+('2500', 'Campinas', 'SP', 'Rod. Anhanguera'),
+('45', 'Santos', 'SP', 'Av. Portuária');
+
+INSERT INTO empresa (razao_social, cnpj, dt_registro, fk_endereco) VALUES
+('Logística Brasil LTDA', '12345678000199', '2024-01-10', 1),
+('TransPorto SA', '98765432000188', '2023-08-20', 2),
+('Dock Solutions', '45678912000155', '2025-02-15', 3);
+
+INSERT INTO sensor (fk_empresa, status_sensor) VALUES
+(1, 1),
+(1, 0),
+(2, 0),
+(3, 1);
+
+INSERT INTO doca (numero, status_doca, fk_empresa, fk_sensor) VALUES
+('D01', 'OCUPADA', 1, 1),
+('D02', 'LIVRE', 1, 2),
+('A01', 'MANUTENÇÃO', 2, 3),
+('B15', 'OCUPADA', 3, 4);
+
+INSERT INTO historico_sensor (fk_sensor, dt_hora_entrada, dt_hora_saida) VALUES
+(1, '2026-03-25 10:00:00', NULL),
+(2, '2026-03-25 07:45:00', '2026-03-25 08:20:00'),
+(4, '2026-03-25 09:00:00', NULL);
+
+INSERT INTO usuario (nome, email, senha, fk_empresa) VALUES
+('Carlos Silva', 'carlos@logbrasil.com', '123456', 1),
+('Ana Souza', 'ana@logbrasil.com', '123456', 1),
+('Marcos Lima', 'marcos@transporto.com', '123456', 2),
+('Fernanda Costa', 'fernanda@docksolutions.com', '123456', 3);
+
+INSERT INTO nivel_acesso (nome, fk_usuario) VALUES
+('ADMINISTRADOR', 1),
+('FUNCIONÁRIO', 2),
+('GESTOR', 3),
+('GESTOR', 4);
+
+SELECT
+    e.razao_social AS 'Nome da Empresa',
+    d.numero AS 'Número da Doca',
+    d.status_doca AS 'Status da Doca',
+    s.status_sensor AS 'Status do Sensor',
+    hs.dt_hora_entrada AS 'Data da Entrada',
+    hs.dt_hora_saida AS 'Data de Saída'
+FROM empresa e
+JOIN doca d
+    ON d.fk_empresa = e.id_empresa
+JOIN sensor s
+    ON d.fk_sensor = s.id_sensor
+JOIN historico_sensor hs
+    ON hs.fk_sensor = s.id_sensor;
